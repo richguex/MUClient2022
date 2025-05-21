@@ -14,7 +14,13 @@ namespace AsyncAwaitUtil
                 if (enumerator.Current is UnityWebRequestAsyncOperation webOp)
                 {
                     yield return webOp;
+
+#if UNITY_2020_1_OR_NEWER
+                    if (webOp.webRequest.result == UnityWebRequest.Result.ConnectionError || 
+                        webOp.webRequest.result == UnityWebRequest.Result.ProtocolError)
+#else
                     if (webOp.webRequest.isNetworkError || webOp.webRequest.isHttpError)
+#endif
                     {
                         Debug.LogError("Web request failed: " + webOp.webRequest.error);
                     }
@@ -66,7 +72,9 @@ namespace AsyncAwaitUtil
         private static void RunOnUnityScheduler(Action action)
         {
             if (SynchronizationContextUtil.UnitySynchronizationContext == null)
-                throw new Exception("UnitySynchronizationContext not initialized");
+                throw new Exception(
+                    "UnitySynchronizationContext is not initialized. " +
+                    "Please ensure you're calling this from the main Unity thread.");
 
             SynchronizationContextUtil.UnitySynchronizationContext.Post(_ => action(), null);
         }
